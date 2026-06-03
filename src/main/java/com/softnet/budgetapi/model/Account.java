@@ -12,21 +12,39 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false)
-    private String accountName;
+    private String name;
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance;
 
     protected Account(){}
 
-    public Account(String accountName, BigDecimal balance){
-        this.accountName = accountName;
-        this.balance = balance;
+    public Account(String name){
+        this.name = name;
+        this.balance = BigDecimal.ZERO;
     }
 
-    public String getAccountName(){return this.accountName;}
-    public void setAccountName(String accountName){this.accountName = accountName;}
+    public String getName(){return this.name;}
+    public void setName(String name){this.name = name;}
 
     public BigDecimal getBalance(){return this.balance;}
+
+    public void deposit(BigDecimal amount){
+        if(amount.compareTo(BigDecimal.ZERO)<=0){
+            throw new IllegalArgumentException("The deposit amount has to be a positive number");
+        } else {
+            this.balance = this.balance.add(amount);
+        }
+    }
+
+    public void withdraw(BigDecimal amount){
+        if(amount.compareTo(BigDecimal.ZERO)<=0){
+            throw new IllegalArgumentException("The withdrawal amount has to be a positive number");
+        } else if(amount.compareTo(this.balance)>0){
+            throw new IllegalArgumentException("Insufficients balance for the withdrawal operation");
+        } else {
+            this.balance = this.balance.subtract(amount);
+        }
+    }
 }
 
 
