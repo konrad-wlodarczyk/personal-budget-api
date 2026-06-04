@@ -23,6 +23,8 @@ public class Account {
         this.balance = BigDecimal.ZERO;
     }
 
+    public Long getId(){return this.id;}
+
     public String getName(){return this.name;}
     public void setName(String name){this.name = name;}
 
@@ -40,7 +42,7 @@ public class Account {
         if(amount.compareTo(BigDecimal.ZERO)<=0){
             throw new IllegalArgumentException("The withdrawal amount has to be a positive number");
         } else if(amount.compareTo(this.balance)>0){
-            throw new IllegalArgumentException("Insufficients balance for the withdrawal operation");
+            throw new IllegalArgumentException("Insufficient balance for the withdrawal operation");
         } else {
             this.balance = this.balance.subtract(amount);
         }

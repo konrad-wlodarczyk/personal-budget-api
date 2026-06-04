@@ -3,7 +3,7 @@ package com.softnet.budgetapi.model;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "transactions")
@@ -22,7 +22,7 @@ public class Transaction {
     @Column(length = 255)
     private String description;
     @Column(nullable = false)
-    private LocalDateTime transactionDate;
+    private ZonedDateTime date;
 
     @ManyToOne
     @JoinColumn(name = "account_id", nullable = false)
@@ -36,7 +36,7 @@ public class Transaction {
         this.category = category;
         this.description = description;
         this.account = account;
-        this.transactionDate = LocalDateTime.now();
+        this.date = ZonedDateTime.now();
     }
 
     public Transaction(BigDecimal amount, TransactionType type, String category, Account account){
@@ -48,7 +48,7 @@ public class Transaction {
     public TransactionType getType(){return this.type;}
     public String getCategory(){return this.category;}
     public String getDescription(){return this.description;}
-    public LocalDateTime getTransactionDate(){return this.transactionDate;}
+    public ZonedDateTime getDate(){return this.date;}
     public Account getAccount(){return this.account;}
 
 }
