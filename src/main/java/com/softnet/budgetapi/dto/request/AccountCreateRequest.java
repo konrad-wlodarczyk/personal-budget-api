@@ -1,4 +1,4 @@
-package com.softnet.budgetapi.dto;
+package com.softnet.budgetapi.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 

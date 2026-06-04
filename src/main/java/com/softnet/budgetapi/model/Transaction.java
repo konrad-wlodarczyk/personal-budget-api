@@ -31,9 +31,6 @@ public class Transaction {
     protected Transaction(){}
 
     public Transaction(BigDecimal amount, TransactionType type, String category, String description, Account account){
-        if(amount.compareTo(BigDecimal.ZERO) <= 0){
-            throw new IllegalArgumentException("Transaction must be of positive value");
-        }
         this.amount = amount;
         this.type = type;
         this.category = category;
