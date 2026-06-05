@@ -1,5 +1,7 @@
 package com.softnet.budgetapi.service;
 
+import com.softnet.budgetapi.exception.BusinessException;
+import com.softnet.budgetapi.exception.ResourceNotFoundException;
 import com.softnet.budgetapi.model.Account;
 import com.softnet.budgetapi.repository.AccountRepository;
 import com.softnet.budgetapi.repository.TransactionRepository;
@@ -37,21 +39,21 @@ public class AccountService {
 
     @Transactional(readOnly = true)
     public Account getAccountById(Long id){
-        return accountRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Account with ID: "
-                + id  + " does not exist"));
+        return accountRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Account with ID: " +
+                id + " does not exist"));
 
     }
 
     @Transactional
     public void deleteAccount(Long id){
         if(!accountRepository.existsById(id)){
-            throw new IllegalArgumentException("Account with ID: " + id + " does not exist");
+            throw new ResourceNotFoundException("Account with ID: " + id + " does not exist");
         }
 
         boolean hasTransactions = transactionRepository.existsByAccountId(id);
 
         if(hasTransactions){
-            throw new IllegalArgumentException("Cannot delete account with ID: " + id + " because it contains transactions");
+            throw new BusinessException("Cannot delete account with ID: " + id + " because it contains transactions");
         }
 
         accountRepository.deleteById(id);

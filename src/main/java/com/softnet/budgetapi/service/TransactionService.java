@@ -1,5 +1,6 @@
 package com.softnet.budgetapi.service;
 
+import com.softnet.budgetapi.exception.ResourceNotFoundException;
 import com.softnet.budgetapi.model.Account;
 import com.softnet.budgetapi.model.Transaction;
 import com.softnet.budgetapi.domain.TransactionSummary;
@@ -14,8 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
@@ -31,8 +30,8 @@ public class TransactionService {
     public Transaction createTransaction(BigDecimal amount, TransactionType type, String category,
                                          String description, Long accountId) {
 
-        Account account = accountRepository.findById(accountId).orElseThrow(() -> new IllegalArgumentException("Account with ID: "
-        + accountId + " does not exist"));
+        Account account = accountRepository.findById(accountId).orElseThrow(() -> new ResourceNotFoundException("Account with ID: " +
+                accountId + " does not exist"));
 
         if(type == TransactionType.INCOME){
             account.deposit(amount);
@@ -72,7 +71,7 @@ public class TransactionService {
     @Transactional
     public void deleteTransaction(Long id){
         Transaction transaction = transactionRepository.findById(id).orElseThrow(() ->
-                new IllegalArgumentException("Transaction with ID " + id + " does not exist"));
+                new ResourceNotFoundException("Transaction with ID: " + id + " does not exist"));
 
         TransactionType transactionType = transaction.getType();
         Account account = transaction.getAccount();

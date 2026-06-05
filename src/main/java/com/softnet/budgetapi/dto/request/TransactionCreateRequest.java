@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 
 public record TransactionCreateRequest(
         @NotNull(message = "Transaction amount is required")
-        @Positive(message = "Transaction amount must be of positive value")
         BigDecimal amount,
 
         @NotNull(message = "Transaction type is required")

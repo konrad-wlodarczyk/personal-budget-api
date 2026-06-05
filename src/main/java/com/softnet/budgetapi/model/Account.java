@@ -1,5 +1,6 @@
 package com.softnet.budgetapi.model;
 
+import com.softnet.budgetapi.exception.BusinessException;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -31,7 +32,7 @@ public class Account {
 
     public void deposit(BigDecimal amount){
         if(amount.compareTo(BigDecimal.ZERO)<=0){
-            throw new IllegalArgumentException("The deposit amount has to be a positive number");
+            throw new BusinessException("The deposit amount has to be a positive number");
         } else {
             this.balance = this.balance.add(amount);
         }
@@ -39,9 +40,9 @@ public class Account {
 
     public void withdraw(BigDecimal amount){
         if(amount.compareTo(BigDecimal.ZERO)<=0){
-            throw new IllegalArgumentException("The withdrawal amount has to be a positive number");
+            throw new BusinessException("The withdrawal amount has to be a positive number");
         } else if(amount.compareTo(this.balance)>0){
-            throw new IllegalArgumentException("Insufficient balance for the withdrawal operation");
+            throw new BusinessException("Insufficient balance for the withdrawal operation");
         } else {
             this.balance = this.balance.subtract(amount);
         }
