@@ -14,13 +14,12 @@ public class Account {
     @Column(nullable = false)
     private String name;
     @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal balance;
+    private BigDecimal balance = BigDecimal.ZERO;
 
     protected Account(){}
 
     public Account(String name){
         this.name = name;
-        this.balance = BigDecimal.ZERO;
     }
 
     public Long getId(){return this.id;}
