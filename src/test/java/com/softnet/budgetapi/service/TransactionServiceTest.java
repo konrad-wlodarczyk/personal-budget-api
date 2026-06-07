@@ -1,5 +1,6 @@
 package com.softnet.budgetapi.service;
 
+import com.softnet.budgetapi.domain.TransactionSummary;
 import com.softnet.budgetapi.exception.BusinessException;
 import com.softnet.budgetapi.exception.ErrorCode;
 import com.softnet.budgetapi.exception.ResourceNotFoundException;
@@ -7,6 +8,7 @@ import com.softnet.budgetapi.model.Account;
 import com.softnet.budgetapi.model.Transaction;
 import com.softnet.budgetapi.model.TransactionType;
 import com.softnet.budgetapi.repository.AccountRepository;
+import com.softnet.budgetapi.repository.CategoryExpense;
 import com.softnet.budgetapi.repository.TransactionRepository;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -22,6 +24,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
@@ -122,6 +126,36 @@ public class TransactionServiceTest {
 
         assertEquals("The deposit amount has to be a positive number", exception.getMessage());
         assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
+    }
+
+    @Test
+    public void testGetSummary() {
+        ZonedDateTime from = ZonedDateTime.now().minusDays(7);
+        ZonedDateTime to = ZonedDateTime.now();
+        String category = "Spożywcze";
+
+        List<CategoryExpense> categoryExpenses = List.of(
+                new CategoryExpense("Spożywcze", new BigDecimal("300"))
+        );
+
+        when(transactionRepository.sumAmountFiltered(TransactionType.INCOME, from, to, category))
+                .thenReturn(new BigDecimal("1000"));
+        when(transactionRepository.sumAmountFiltered(TransactionType.EXPENSE, from, to, category))
+                .thenReturn(new BigDecimal("300"));
+        when(transactionRepository.sumExpensesByCategoryFiltered(from, to, category))
+                .thenReturn(categoryExpenses);
+
+
+        TransactionSummary summary = transactionService.getSummary(from, to, category);
+
+        assertNotNull(summary);
+        assertEquals(new BigDecimal("1000"), summary.totalIncome());
+        assertEquals(new BigDecimal("300"), summary.totalExpense());
+        assertEquals(1, summary.expensesByCategory().size());
+        assertEquals("Spożywcze", summary.expensesByCategory().get(0).category());
+
+        verify(transactionRepository).sumAmountFiltered(TransactionType.INCOME, from, to, category);
+        verify(transactionRepository).sumExpensesByCategoryFiltered(from, to, category);
     }
 
     @Test
