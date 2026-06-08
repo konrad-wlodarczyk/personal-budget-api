@@ -62,7 +62,7 @@ public class GlobalExceptionHandler {
         return createProblemDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Internal Server Error",
-                "An unexpected error occured. Please try again.",
+                "An unexpected error occured. Please try again",
                 ErrorCode.INTERNAL_SERVER_ERROR,
                 request.getRequestURI()
         );

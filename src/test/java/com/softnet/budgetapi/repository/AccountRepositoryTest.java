@@ -32,20 +32,23 @@ public class AccountRepositoryTest {
     }
 
     @Test
-    public void testGetAllAccounts(){
-        Specification<Account> spec1 = (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%konto%");
-        List<Account> result1 = accountRepository.findAll(spec1);
+    public void shouldReturnAllAccountsWhenMatchingKeyword() {
+        Specification<Account> spec = (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%konto%");
+        List<Account> result = accountRepository.findAll(spec);
+        assertEquals(3, result.size());
+    }
 
-        assertEquals(3, result1.size());
+    @Test
+    public void shouldReturnEmptyListWhenNoAccountMatches() {
+        Specification<Account> spec = (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%test%");
+        List<Account> result = accountRepository.findAll(spec);
+        assertEquals(0, result.size());
+    }
 
-        Specification<Account> spec2 = (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%test%");
-        List<Account> result2 = accountRepository.findAll(spec2);
-
-        assertEquals(0, result2.size());
-
-        Specification<Account> spec3 = (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%oszczędnościowe%");
-        List<Account> result3 = accountRepository.findAll(spec3);
-
-        assertEquals(1, result3.size());
+    @Test
+    public void shouldReturnSingleAccountWhenNameIsSpecific() {
+        Specification<Account> spec = (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%oszczędnościowe%");
+        List<Account> result = accountRepository.findAll(spec);
+        assertEquals(1, result.size());
     }
 }

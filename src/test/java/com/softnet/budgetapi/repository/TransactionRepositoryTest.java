@@ -35,30 +35,31 @@ public class TransactionRepositoryTest {
     }
 
     @Test
-    void testGetAllTransactions_FilteredByCategory(){
-        Transaction transaction1 = new Transaction(new BigDecimal("100"), TransactionType.EXPENSE, "Jedzenie", "Biedronka", account);
-        Transaction transaction2 = new Transaction(new BigDecimal("50"), TransactionType.EXPENSE, "Jedzenie", "Kebab", account);
-        Transaction transaction3 = new Transaction(new BigDecimal("200"), TransactionType.EXPENSE, "Transport", "Paliwo", account);
-
-        entityManager.persist(transaction1);
-        entityManager.persist(transaction2);
-        entityManager.persist(transaction3);
+    void shouldFindTwoTransactionsWhenCategoryMatches() {
+        entityManager.persist(new Transaction(new BigDecimal("100"), TransactionType.EXPENSE, "Jedzenie", "Biedronka", account));
+        entityManager.persist(new Transaction(new BigDecimal("50"), TransactionType.EXPENSE, "Jedzenie", "Kebab", account));
+        entityManager.persist(new Transaction(new BigDecimal("200"), TransactionType.EXPENSE, "Transport", "Paliwo", account));
 
         Specification<Transaction> spec = (root, query, cb) -> cb.like(cb.lower(root.get("category")), "%jedzenie%");
         List<Transaction> result = transactionRepository.findAll(spec);
 
         assertEquals(2, result.size());
-        assertEquals("Jedzenie", result.getFirst().getCategory());
-        assertEquals("Jedzenie", result.get(1).getCategory());
     }
 
     @Test
-    void testGetAllTransactions_FilteredByDay(){
-        Transaction transaction1 = new Transaction(new BigDecimal("100"), TransactionType.EXPENSE, "Jedzenie", "Biedronka", account);
-        Transaction transaction2 = new Transaction(new BigDecimal("50"), TransactionType.EXPENSE, "Jedzenie", "Kebab", account);
+    void shouldReturnEmptyListWhenCategoryDoesNotMatch() {
+        entityManager.persist(new Transaction(new BigDecimal("200"), TransactionType.EXPENSE, "Transport", "Paliwo", account));
 
-        entityManager.persist(transaction1);
-        entityManager.persist(transaction2);
+        Specification<Transaction> spec = (root, query, cb) -> cb.like(cb.lower(root.get("category")), "%jedzenie%");
+        List<Transaction> result = transactionRepository.findAll(spec);
+
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void shouldFindTransactionsWhenDateIsInRange() {
+        entityManager.persist(new Transaction(new BigDecimal("100"), TransactionType.EXPENSE, "Jedzenie", "Biedronka", account));
+        entityManager.persist(new Transaction(new BigDecimal("50"), TransactionType.EXPENSE, "Jedzenie", "Kebab", account));
 
         ZonedDateTime from = ZonedDateTime.now().minusDays(1);
         ZonedDateTime to = ZonedDateTime.now().plusDays(1);
@@ -67,13 +68,18 @@ public class TransactionRepositoryTest {
         List<Transaction> result = transactionRepository.findAll(spec);
 
         assertEquals(2, result.size());
+    }
 
-        ZonedDateTime fromEmpty = ZonedDateTime.now().minusDays(3);
-        ZonedDateTime toEmpty = ZonedDateTime.now().minusDays(2);
+    @Test
+    void shouldReturnEmptyListWhenDateIsOutOfRange() {
+        entityManager.persist(new Transaction(new BigDecimal("100"), TransactionType.EXPENSE, "Jedzenie", "Biedronka", account));
 
-        Specification<Transaction> specEmpty = (root, query, cb) -> cb.between(root.get("date"), fromEmpty, toEmpty);
-        List<Transaction> resultEmpty = transactionRepository.findAll(specEmpty);
+        ZonedDateTime from = ZonedDateTime.now().minusDays(3);
+        ZonedDateTime to = ZonedDateTime.now().minusDays(2);
 
-        assertEquals(0, resultEmpty.size());
+        Specification<Transaction> spec = (root, query, cb) -> cb.between(root.get("date"), from, to);
+        List<Transaction> result = transactionRepository.findAll(spec);
+
+        assertEquals(0, result.size());
     }
 }

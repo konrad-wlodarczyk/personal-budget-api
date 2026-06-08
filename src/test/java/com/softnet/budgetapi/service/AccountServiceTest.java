@@ -12,12 +12,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 
+import java.util.List;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,7 +41,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void testCreateAccount(){
+    void testCreateAccount(){
         when(accountRepository.save(any(Account.class))).thenReturn(account);
         Account result = accountService.createAccount(account);
 
@@ -49,7 +50,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void testGetAccountById_ShouldReturnAccount(){
+    void testGetAccountById_ShouldReturnAccount(){
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         Account result = accountService.getAccountById(1L);
         assertEquals("Konto Testowe", result.getName());
@@ -58,7 +59,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void testGetAccountById_ShouldThrowException(){
+    void testGetAccountById_ShouldThrowException(){
         when(accountRepository.findById(99L)).thenReturn(Optional.empty());
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             accountService.getAccountById(99L);
@@ -69,7 +70,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void testDeleteAccount(){
+    void testDeleteAccount(){
         when(accountRepository.existsById(1L)).thenReturn(true);
         when(transactionRepository.existsByAccountId(1L)).thenReturn(false);
 
@@ -79,7 +80,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void testDeleteAccount_ShouldThrowResourceException(){
+    void testDeleteAccount_ShouldThrowResourceException(){
         when(accountRepository.existsById(99L)).thenReturn(false);
 
         ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
@@ -92,7 +93,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void testDeleteAccount_ShouldThrowBusinessException(){
+    void testDeleteAccount_ShouldThrowBusinessException(){
         when(accountRepository.existsById(1L)).thenReturn(true);
         when(transactionRepository.existsByAccountId(1L)).thenReturn(true);
 
@@ -104,5 +105,39 @@ public class AccountServiceTest {
         assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
 
         verify(accountRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    public void testGetAllAccounts_Filtered(){
+        String name = "konto";
+
+        when(accountRepository.findAll(any(Specification.class))).thenReturn(List.of(account));
+
+        List<Account> result = accountService.getAllAccounts(name);
+
+        assertNotNull(result);
+        verify(accountRepository, times(1)).findAll(any(Specification.class));
+    }
+
+    @Test
+    public void testGetAllAccounts_Unfiltered(){
+        when(accountRepository.findAll(any(Specification.class))).thenReturn(List.of(account));
+
+        List<Account> result = accountService.getAllAccounts(null);
+
+        assertNotNull(result);
+        verify(accountRepository, times(1)).findAll(any(Specification.class));
+    }
+
+    @Test
+    public void testGetAllAccounts_FilteredBlank(){
+        String name = "";
+
+        when(accountRepository.findAll(any(Specification.class))).thenReturn(List.of(account));
+
+        List<Account> result = accountService.getAllAccounts(name);
+
+        assertNotNull(result);
+        verify(accountRepository, times(1)).findAll(any(Specification.class));
     }
 }

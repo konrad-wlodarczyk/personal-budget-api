@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softnet.budgetapi.dto.request.AccountCreateRequest;
 import com.softnet.budgetapi.dto.response.AccountResponse;
 import com.softnet.budgetapi.exception.BusinessException;
+import com.softnet.budgetapi.exception.ErrorCode;
 import com.softnet.budgetapi.exception.ResourceNotFoundException;
 import com.softnet.budgetapi.mapper.AccountMapper;
 import com.softnet.budgetapi.model.Account;
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -166,5 +168,16 @@ public class AccountControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("BUSINESS_RULE_CONFLICT"))
                 .andExpect(jsonPath("$.detail").value("Cannot delete account with ID: 99 because it contains transactions"));
+    }
+
+    @Test
+    public void shouldHandleInternalServerError() throws Exception {
+        when(accountService.getAccountById(anyLong())).thenThrow(new RuntimeException("Something Wrong"));
+
+        mockMvc.perform(get("/api/accounts/1"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.title").value("Internal Server Error"))
+                .andExpect(jsonPath("$.detail").value("An unexpected error occured. Please try again"))
+                .andExpect(jsonPath("$.code").value(ErrorCode.INTERNAL_SERVER_ERROR.name()));
     }
 }

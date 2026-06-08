@@ -83,4 +83,12 @@ public class AccountTest {
         assertEquals("Insufficient balance for the withdrawal operation", exception.getMessage());
         assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
     }
+
+    @Test
+    public void testSetName(){
+        String newName = "Konto Zmienione";
+        account.setName(newName);
+
+        assertEquals(newName, account.getName());
+    }
 }

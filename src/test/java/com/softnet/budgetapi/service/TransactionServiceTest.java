@@ -17,11 +17,13 @@ import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
@@ -129,6 +131,23 @@ public class TransactionServiceTest {
     }
 
     @Test
+    public void testCreateTransaction_TypeNull() {
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            transactionService.createTransaction(new BigDecimal("100"),
+                    null,
+                    "Test",
+                    "Description",
+                    1L);
+
+        });
+
+        assertEquals("Transaction type cannot be null", exception.getMessage());
+        assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
+    }
+
+    @Test
     public void testGetSummary() {
         ZonedDateTime from = ZonedDateTime.now().minusDays(7);
         ZonedDateTime to = ZonedDateTime.now();
@@ -221,5 +240,91 @@ public class TransactionServiceTest {
 
         assertEquals("Insufficient balance for the withdrawal operation", exception.getMessage());
         assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
+    }
+
+    @Test
+    public void testDeleteTransaction_TypeNull(){
+        transaction = new Transaction(new BigDecimal("1000"),
+                null,
+                "Test",
+                "Description",
+                account);
+
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
+
+        BusinessException exception = assertThrows(BusinessException.class, () ->{
+            transactionService.deleteTransaction(1L);
+        });
+
+        assertEquals("Transaction type cannot be null", exception.getMessage());
+        assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
+    }
+
+    @Test
+    public void testGetAllTransactions_Unfiltered(){
+        transaction = new Transaction(new BigDecimal("1000"),
+                null,
+                "Test",
+                "Description",
+                account);
+
+        when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
+
+        List<Transaction> result = transactionService.getAllTransactions(null, null, null);
+
+        assertNotNull(result);
+        verify(transactionRepository, times(1)).findAll(any(Specification.class));
+    }
+
+    @Test
+    public void testGetAllTransactions_WithAllFilters() {
+        transaction = new Transaction(new BigDecimal("1000"),
+                null,
+                "Test",
+                "Description",
+                account);
+
+        ZonedDateTime from = ZonedDateTime.now().minusDays(1);
+        ZonedDateTime to = ZonedDateTime.now();
+        String category = "Jedzenie";
+
+        when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
+
+        List<Transaction> result = transactionService.getAllTransactions(from, to, category);
+
+        assertNotNull(result);
+        verify(transactionRepository, times(1)).findAll(any(Specification.class));
+    }
+
+    @Test
+    public void testGetAllTransactions_WithOnlyCategoryFilter() {
+        transaction = new Transaction(new BigDecimal("1000"),
+                null,
+                "Test",
+                "Description",
+                account);
+
+        when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
+
+        List<Transaction> result = transactionService.getAllTransactions(null, null, "Test");
+
+        assertNotNull(result);
+        verify(transactionRepository, times(1)).findAll(any(Specification.class));
+    }
+
+    @Test
+    public void testGetAllTransactions_WithEmptyCategory() {
+        transaction = new Transaction(new BigDecimal("1000"),
+                null,
+                "Test",
+                "Description",
+                account);
+
+        when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
+
+        List<Transaction> result = transactionService.getAllTransactions(null, null, "   ");
+
+        assertNotNull(result);
+        verify(transactionRepository, times(1)).findAll(any(Specification.class));
     }
 }

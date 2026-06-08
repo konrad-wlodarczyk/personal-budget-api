@@ -1,5 +1,6 @@
 package com.softnet.budgetapi.service;
 
+import com.softnet.budgetapi.exception.BusinessException;
 import com.softnet.budgetapi.exception.ResourceNotFoundException;
 import com.softnet.budgetapi.model.Account;
 import com.softnet.budgetapi.model.Transaction;
@@ -37,6 +38,8 @@ public class TransactionService {
             account.deposit(amount);
         } else if(type == TransactionType.EXPENSE){
             account.withdraw(amount);
+        } else {
+            throw new BusinessException("Transaction type cannot be null");
         }
 
         return transactionRepository.save(new Transaction(amount, type, category, description, account));
@@ -80,6 +83,8 @@ public class TransactionService {
             account.deposit(transaction.getAmount());
         } else if(transactionType == TransactionType.INCOME){
             account.withdraw(transaction.getAmount());
+        } else {
+            throw new BusinessException("Transaction type cannot be null");
         }
 
         transactionRepository.deleteById(id);
