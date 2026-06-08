@@ -1,27 +1,29 @@
 package com.softnet.budgetapi.service;
 
-import com.softnet.budgetapi.domain.TransactionSummary;
+import com.softnet.budgetapi.dto.request.TransactionCreateRequest;
+import com.softnet.budgetapi.dto.response.SummaryResponse;
+import com.softnet.budgetapi.dto.response.TransactionResponse;
 import com.softnet.budgetapi.exception.BusinessException;
 import com.softnet.budgetapi.exception.ErrorCode;
 import com.softnet.budgetapi.exception.ResourceNotFoundException;
+import com.softnet.budgetapi.mapper.SummaryMapper;
+import com.softnet.budgetapi.mapper.TransactionMapper;
 import com.softnet.budgetapi.model.Account;
 import com.softnet.budgetapi.model.Transaction;
 import com.softnet.budgetapi.model.TransactionType;
+import com.softnet.budgetapi.domain.TransactionSummary;
 import com.softnet.budgetapi.repository.AccountRepository;
 import com.softnet.budgetapi.repository.CategoryExpense;
 import com.softnet.budgetapi.repository.TransactionRepository;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -39,6 +41,12 @@ public class TransactionServiceTest {
     @Mock
     private AccountRepository accountRepository;
 
+    @Mock
+    private TransactionMapper transactionMapper;
+
+    @Mock
+    private SummaryMapper summaryMapper;
+
     @InjectMocks
     private TransactionService transactionService;
 
@@ -46,85 +54,81 @@ public class TransactionServiceTest {
     private Account account;
 
     @BeforeEach
-    void setUp(){ account = new Account("Konto Testowe"); }
+    void setUp() {
+        account = new Account("Konto Testowe");
+    }
+
+    private TransactionCreateRequest buildRequest(BigDecimal amount, TransactionType type) {
+        return new TransactionCreateRequest(amount, type, "Test", "Description", 1L);
+    }
+
+    private TransactionResponse stubMapper(Transaction t) {
+        TransactionResponse response = mock(TransactionResponse.class);
+        when(transactionMapper.toResponse(t)).thenReturn(response);
+        return response;
+    }
 
     @Test
-    public void testCreateIncomeTransaction(){
+    public void testCreateIncomeTransaction() {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
 
-        transaction = transactionService.createTransaction(new BigDecimal("1000"),
-                TransactionType.INCOME,
-                "Test",
-                "Description",
-                1L);
+        TransactionResponse response = transactionService.createTransaction(
+                buildRequest(new BigDecimal("1000"), TransactionType.INCOME));
 
-        assertNotNull(transaction);
-        assertEquals(transaction.getAmount(), account.getBalance());
+        assertNotNull(response);
+        assertEquals(new BigDecimal("1000"), account.getBalance());
         verify(transactionRepository, times(1)).save(any(Transaction.class));
     }
 
     @Test
-    public void testCreateExpenseTransaction(){
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
-        when(transactionRepository.save(any(Transaction.class))).thenAnswer(i -> i.getArguments()[0]);
-
+    public void testCreateExpenseTransaction() {
         account.deposit(new BigDecimal("1000"));
 
-        transaction = transactionService.createTransaction(new BigDecimal("500"),
-                TransactionType.EXPENSE,
-                "Test",
-                "Description",
-                1L);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
 
-        assertNotNull(transaction);
+        TransactionResponse response = transactionService.createTransaction(
+                buildRequest(new BigDecimal("500"), TransactionType.EXPENSE));
+
+        assertNotNull(response);
         assertEquals(new BigDecimal("500"), account.getBalance());
         verify(transactionRepository, times(1)).save(any(Transaction.class));
     }
 
     @Test
-    public void testCreateTransaction_ShouldThrowResourceException(){
+    public void testCreateTransaction_ShouldThrowResourceException() {
         when(accountRepository.findById(99L)).thenReturn(Optional.empty());
 
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-            transactionService.createTransaction(new BigDecimal("500"),
-                    TransactionType.EXPENSE,
-                    "Test",
-                    "Description",
-                    99L);
-        });
+        TransactionCreateRequest request = new TransactionCreateRequest(
+                new BigDecimal("500"), TransactionType.EXPENSE, "Test", "Description", 99L);
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () ->
+                transactionService.createTransaction(request));
 
         assertEquals("Account with ID: 99 does not exist", exception.getMessage());
         assertEquals(ErrorCode.RESOURCE_NOT_FOUND, exception.getErrorCode());
     }
 
     @Test
-    public void testCreateNegativeExpenseTransaction(){
+    public void testCreateNegativeExpenseTransaction() {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        BusinessException exception = assertThrows(BusinessException.class, () ->{
-            transactionService.createTransaction(new BigDecimal("-50"),
-                    TransactionType.EXPENSE,
-                    "Test",
-                    "Description",
-                    1L);
-        });
+        BusinessException exception = assertThrows(BusinessException.class, () ->
+                transactionService.createTransaction(buildRequest(new BigDecimal("-50"), TransactionType.EXPENSE)));
 
         assertEquals("The withdrawal amount has to be a positive number", exception.getMessage());
         assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
     }
 
     @Test
-    public void testCreateNegativeIncomeTransaction(){
+    public void testCreateNegativeIncomeTransaction() {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            transactionService.createTransaction(new BigDecimal("-50"),
-                    TransactionType.INCOME,
-                    "Test",
-                    "Description",
-                    1L);
-        });
+        BusinessException exception = assertThrows(BusinessException.class, () ->
+                transactionService.createTransaction(buildRequest(new BigDecimal("-50"), TransactionType.INCOME)));
 
         assertEquals("The deposit amount has to be a positive number", exception.getMessage());
         assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
@@ -134,16 +138,10 @@ public class TransactionServiceTest {
     public void testCreateTransaction_TypeNull() {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            transactionService.createTransaction(new BigDecimal("100"),
-                    null,
-                    "Test",
-                    "Description",
-                    1L);
+        BusinessException exception = assertThrows(BusinessException.class, () ->
+                transactionService.createTransaction(buildRequest(new BigDecimal("100"), null)));
 
-        });
-
-        assertEquals("Transaction type cannot be null", exception.getMessage());
+        assertEquals("Transaction type invalid", exception.getMessage());
         assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
     }
 
@@ -154,8 +152,7 @@ public class TransactionServiceTest {
         String category = "Spożywcze";
 
         List<CategoryExpense> categoryExpenses = List.of(
-                new CategoryExpense("Spożywcze", new BigDecimal("300"))
-        );
+                new CategoryExpense("Spożywcze", new BigDecimal("300")));
 
         when(transactionRepository.sumAmountFiltered(TransactionType.INCOME, from, to, category))
                 .thenReturn(new BigDecimal("1000"));
@@ -164,27 +161,24 @@ public class TransactionServiceTest {
         when(transactionRepository.sumExpensesByCategoryFiltered(from, to, category))
                 .thenReturn(categoryExpenses);
 
+        SummaryResponse expectedResponse = new SummaryResponse(new BigDecimal("1000"), new BigDecimal("300"), List.of());
 
-        TransactionSummary summary = transactionService.getSummary(from, to, category);
+        when(summaryMapper.toResponse(any())).thenReturn(expectedResponse);
 
-        assertNotNull(summary);
-        assertEquals(new BigDecimal("1000"), summary.totalIncome());
-        assertEquals(new BigDecimal("300"), summary.totalExpense());
-        assertEquals(1, summary.expensesByCategory().size());
-        assertEquals("Spożywcze", summary.expensesByCategory().get(0).category());
+        SummaryResponse result = transactionService.getSummary(from, to, category);
+
+        assertNotNull(result);
+        assertEquals(expectedResponse.totalIncome(), result.totalIncome());
+        assertEquals(expectedResponse.totalExpense(), result.totalExpense());
 
         verify(transactionRepository).sumAmountFiltered(TransactionType.INCOME, from, to, category);
         verify(transactionRepository).sumExpensesByCategoryFiltered(from, to, category);
     }
 
-    @Test
-    public void testDeleteIncomeTransaction(){
-        transaction = new Transaction(new BigDecimal("1000"),
-                TransactionType.INCOME,
-                "Test",
-                "Description",
-                account);
 
+    @Test
+    public void testDeleteIncomeTransaction() {
+        transaction = new Transaction(new BigDecimal("1000"), TransactionType.INCOME, "Test", "Description", account);
         account.deposit(new BigDecimal("1000"));
 
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
@@ -196,12 +190,8 @@ public class TransactionServiceTest {
     }
 
     @Test
-    public void testDeleteExpenseTransaction(){
-        transaction = new Transaction(new BigDecimal("1000"),
-                TransactionType.EXPENSE,
-                "Test",
-                "Description",
-                account);
+    public void testDeleteExpenseTransaction() {
+        transaction = new Transaction(new BigDecimal("1000"), TransactionType.EXPENSE, "Test", "Description", account);
 
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
 
@@ -212,12 +202,11 @@ public class TransactionServiceTest {
     }
 
     @Test
-    public void testDeleteTransaction_ShouldThrowResourceException(){
+    public void testDeleteTransaction_ShouldThrowResourceException() {
         when(transactionRepository.findById(99L)).thenReturn(Optional.empty());
 
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-            transactionService.deleteTransaction(99L);
-        });
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () ->
+                transactionService.deleteTransaction(99L));
 
         assertEquals("Transaction with ID: 99 does not exist", exception.getMessage());
         assertEquals(ErrorCode.RESOURCE_NOT_FOUND, exception.getErrorCode());
@@ -225,106 +214,87 @@ public class TransactionServiceTest {
     }
 
     @Test
-    public void testDeleteIncomeTransaction_ShouldThrowBusinessException(){
-        transaction = new Transaction(new BigDecimal("1000"),
-                TransactionType.INCOME,
-                "Test",
-                "Description",
-                account);
+    public void testDeleteIncomeTransaction_ShouldThrowBusinessException() {
+        transaction = new Transaction(new BigDecimal("1000"), TransactionType.INCOME, "Test", "Description", account);
 
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
 
-        BusinessException exception = assertThrows(BusinessException.class, () -> {
-            transactionService.deleteTransaction(1L);
-        });
+        BusinessException exception = assertThrows(BusinessException.class, () ->
+                transactionService.deleteTransaction(1L));
 
         assertEquals("Insufficient balance for the withdrawal operation", exception.getMessage());
         assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
     }
 
     @Test
-    public void testDeleteTransaction_TypeNull(){
-        transaction = new Transaction(new BigDecimal("1000"),
-                null,
-                "Test",
-                "Description",
-                account);
+    public void testDeleteTransaction_TypeNull() {
+        transaction = new Transaction(new BigDecimal("1000"), null, "Test", "Description", account);
 
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
 
-        BusinessException exception = assertThrows(BusinessException.class, () ->{
-            transactionService.deleteTransaction(1L);
-        });
+        BusinessException exception = assertThrows(BusinessException.class, () ->
+                transactionService.deleteTransaction(1L));
 
         assertEquals("Transaction type cannot be null", exception.getMessage());
         assertEquals(ErrorCode.BUSINESS_RULE_CONFLICT, exception.getErrorCode());
     }
 
     @Test
-    public void testGetAllTransactions_Unfiltered(){
-        transaction = new Transaction(new BigDecimal("1000"),
-                null,
-                "Test",
-                "Description",
-                account);
+    public void testGetAllTransactions_Unfiltered() {
+        transaction = new Transaction(new BigDecimal("1000"), null, "Test", "Description", account);
 
         when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
+        when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
 
-        List<Transaction> result = transactionService.getAllTransactions(null, null, null);
+        List<TransactionResponse> result = transactionService.getAllTransactions(null, null, null);
 
         assertNotNull(result);
+        assertEquals(1, result.size());
         verify(transactionRepository, times(1)).findAll(any(Specification.class));
     }
 
     @Test
     public void testGetAllTransactions_WithAllFilters() {
-        transaction = new Transaction(new BigDecimal("1000"),
-                null,
-                "Test",
-                "Description",
-                account);
+        transaction = new Transaction(new BigDecimal("1000"), null, "Test", "Description", account);
 
         ZonedDateTime from = ZonedDateTime.now().minusDays(1);
         ZonedDateTime to = ZonedDateTime.now();
-        String category = "Jedzenie";
 
         when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
+        when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
 
-        List<Transaction> result = transactionService.getAllTransactions(from, to, category);
+        List<TransactionResponse> result = transactionService.getAllTransactions(from, to, "Jedzenie");
 
         assertNotNull(result);
+        assertEquals(1, result.size());
         verify(transactionRepository, times(1)).findAll(any(Specification.class));
     }
 
     @Test
     public void testGetAllTransactions_WithOnlyCategoryFilter() {
-        transaction = new Transaction(new BigDecimal("1000"),
-                null,
-                "Test",
-                "Description",
-                account);
+        transaction = new Transaction(new BigDecimal("1000"), null, "Test", "Description", account);
 
         when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
+        when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
 
-        List<Transaction> result = transactionService.getAllTransactions(null, null, "Test");
+        List<TransactionResponse> result = transactionService.getAllTransactions(null, null, "Test");
 
         assertNotNull(result);
+        assertEquals(1, result.size());
         verify(transactionRepository, times(1)).findAll(any(Specification.class));
     }
 
     @Test
     public void testGetAllTransactions_WithEmptyCategory() {
-        transaction = new Transaction(new BigDecimal("1000"),
-                null,
-                "Test",
-                "Description",
-                account);
+        transaction = new Transaction(new BigDecimal("1000"), null, "Test", "Description", account);
 
         when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
+        when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
 
-        List<Transaction> result = transactionService.getAllTransactions(null, null, "   ");
+        List<TransactionResponse> result = transactionService.getAllTransactions(null, null, "   ");
 
         assertNotNull(result);
+        assertEquals(1, result.size());
         verify(transactionRepository, times(1)).findAll(any(Specification.class));
     }
 }

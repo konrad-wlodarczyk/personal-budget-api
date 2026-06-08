@@ -1,7 +1,12 @@
 package com.softnet.budgetapi.service;
 
+import com.softnet.budgetapi.dto.request.TransactionCreateRequest;
+import com.softnet.budgetapi.dto.response.SummaryResponse;
+import com.softnet.budgetapi.dto.response.TransactionResponse;
 import com.softnet.budgetapi.exception.BusinessException;
 import com.softnet.budgetapi.exception.ResourceNotFoundException;
+import com.softnet.budgetapi.mapper.SummaryMapper;
+import com.softnet.budgetapi.mapper.TransactionMapper;
 import com.softnet.budgetapi.model.Account;
 import com.softnet.budgetapi.model.Transaction;
 import com.softnet.budgetapi.domain.TransactionSummary;
@@ -21,32 +26,39 @@ import java.util.List;
 public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private final TransactionMapper transactionMapper;
+    private final SummaryMapper summaryMapper;
 
-    public TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository){
+    public TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository, TransactionMapper transactionMapper, SummaryMapper summaryMapper){
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.transactionMapper = transactionMapper;
+        this.summaryMapper = summaryMapper;
     }
 
     @Transactional
-    public Transaction createTransaction(BigDecimal amount, TransactionType type, String category,
-                                         String description, Long accountId) {
+    public TransactionResponse createTransaction(TransactionCreateRequest request) {
+        Account account = accountRepository.findById(request.accountId())
+                .orElseThrow(() -> new ResourceNotFoundException("Account with ID: " + request.accountId() + " does not exist"));
 
-        Account account = accountRepository.findById(accountId).orElseThrow(() -> new ResourceNotFoundException("Account with ID: " +
-                accountId + " does not exist"));
-
-        if(type == TransactionType.INCOME){
-            account.deposit(amount);
-        } else if(type == TransactionType.EXPENSE){
-            account.withdraw(amount);
-        } else {
-            throw new BusinessException("Transaction type cannot be null");
+        if (request.type() == TransactionType.INCOME){
+            account.deposit(request.amount());
+        }
+        else if (request.type() == TransactionType.EXPENSE){
+            account.withdraw(request.amount());
+        }
+        else{
+            throw new BusinessException("Transaction type invalid");
         }
 
-        return transactionRepository.save(new Transaction(amount, type, category, description, account));
+        Transaction saved = transactionRepository.save(new Transaction(
+                request.amount(), request.type(), request.category(), request.description(), account));
+
+        return transactionMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
-    public List<Transaction> getAllTransactions(ZonedDateTime from, ZonedDateTime to, String category){
+    public List<TransactionResponse> getAllTransactions(ZonedDateTime from, ZonedDateTime to, String category){
         Specification<Transaction> spec = Specification.where(null);
 
         if(from != null){
@@ -59,16 +71,18 @@ public class TransactionService {
             spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("category")), "%" + category.toLowerCase() + "%"));
         }
 
-        return transactionRepository.findAll(spec);
+        return transactionRepository.findAll(spec).stream()
+                .map(transactionMapper::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public TransactionSummary getSummary(ZonedDateTime from, ZonedDateTime to, String category) {
+    public SummaryResponse getSummary(ZonedDateTime from, ZonedDateTime to, String category) {
         BigDecimal totalIncome = transactionRepository.sumAmountFiltered(TransactionType.INCOME, from, to, category);
         BigDecimal totalExpense = transactionRepository.sumAmountFiltered(TransactionType.EXPENSE, from, to, category);
         List<CategoryExpense> categoryExpenses = transactionRepository.sumExpensesByCategoryFiltered(from, to, category);
 
-        return new TransactionSummary(totalIncome, totalExpense, categoryExpenses);
+        return summaryMapper.toResponse(new TransactionSummary(totalIncome, totalExpense, categoryExpenses));
     }
 
     @Transactional

@@ -16,40 +16,27 @@ import java.util.List;
 @RequestMapping("/api/accounts")
 public class AccountController {
     private final AccountService accountService;
-    private final AccountMapper accountMapper;
 
-    public AccountController(AccountService accountService, AccountMapper accountMapper){
+    public AccountController(AccountService accountService) {
         this.accountService = accountService;
-        this.accountMapper = accountMapper;
     }
 
     @PostMapping
     public ResponseEntity<AccountResponse> createAccount(@Valid @RequestBody AccountCreateRequest request){
-        Account accountEntity = accountMapper.toEntity(request);
-        Account savedAccount = accountService.createAccount(accountEntity);
-        AccountResponse response = accountMapper.toResponse(savedAccount);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(accountService.createAccount(request));
     }
 
     @GetMapping
     public ResponseEntity<List<AccountResponse>> getAllAccounts(
             @RequestParam(required = false) String name
     ){
-        List<Account> accounts = accountService.getAllAccounts(name);
-        List<AccountResponse> responseList = accounts.stream()
-                .map(accountMapper::toResponse)
-                .toList();
-
-        return ResponseEntity.ok(responseList);
+        return ResponseEntity.ok(accountService.getAllAccounts(name));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<AccountResponse> getAccountById(@PathVariable Long id){
-        Account account = accountService.getAccountById(id);
-        AccountResponse response = accountMapper.toResponse(account);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(accountService.getAccountById(id));
     }
 
     @DeleteMapping("/{id}")
