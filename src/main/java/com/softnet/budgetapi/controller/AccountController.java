@@ -5,15 +5,19 @@ import com.softnet.budgetapi.dto.response.AccountResponse;
 import com.softnet.budgetapi.mapper.AccountMapper;
 import com.softnet.budgetapi.model.Account;
 import com.softnet.budgetapi.service.AccountService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/accounts")
+@Validated
 public class AccountController {
     private final AccountService accountService;
 

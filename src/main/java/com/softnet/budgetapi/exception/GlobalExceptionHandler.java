@@ -1,10 +1,9 @@
 package com.softnet.budgetapi.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.parsing.Problem;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -53,6 +52,16 @@ public class GlobalExceptionHandler {
                 errorMessage,
                 ErrorCode.VALIDATION_FAILED,
                 request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleReadable(HttpMessageNotReadableException ex,
+                                        HttpServletRequest request) {
+
+        return ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                ex.getMostSpecificCause().getMessage()
         );
     }
 

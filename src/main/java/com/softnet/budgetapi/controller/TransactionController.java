@@ -7,6 +7,7 @@ import com.softnet.budgetapi.service.TransactionService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.ZonedDateTime;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/transactions")
+@Validated
 public class TransactionController {
     private final TransactionService transactionService;
 
