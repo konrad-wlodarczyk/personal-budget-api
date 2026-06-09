@@ -1,4 +1,4 @@
-package com.softnet.budgetapi.repository;
+package com.softnet.budgetapi.domain;
 
 import java.math.BigDecimal;
 

@@ -12,7 +12,7 @@ import com.softnet.budgetapi.model.Transaction;
 import com.softnet.budgetapi.domain.TransactionSummary;
 import com.softnet.budgetapi.model.TransactionType;
 import com.softnet.budgetapi.repository.AccountRepository;
-import com.softnet.budgetapi.repository.CategoryExpense;
+import com.softnet.budgetapi.domain.CategoryExpense;
 import com.softnet.budgetapi.repository.TransactionRepository;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -51,9 +51,7 @@ public class TransactionService {
             throw new BusinessException("Transaction type invalid");
         }
 
-        Transaction saved = transactionRepository.save(new Transaction(
-                request.amount(), request.type(), request.category(), request.description(), account));
-
+        Transaction saved = transactionRepository.save(transactionMapper.toEntity(request, account));
         return transactionMapper.toResponse(saved);
     }
 
@@ -83,6 +81,17 @@ public class TransactionService {
         List<CategoryExpense> categoryExpenses = transactionRepository.sumExpensesByCategoryFiltered(from, to, category);
 
         return summaryMapper.toResponse(new TransactionSummary(totalIncome, totalExpense, categoryExpenses));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionResponse> getTransactionsByAccountId(Long accountId){
+        if(!accountRepository.existsById(accountId)){
+            throw new ResourceNotFoundException("Account with ID: " + accountId +  " does not exist");
+        }
+
+        return transactionRepository.findByAccountId(accountId).stream()
+                .map(transactionMapper::toResponse)
+                .toList();
     }
 
     @Transactional

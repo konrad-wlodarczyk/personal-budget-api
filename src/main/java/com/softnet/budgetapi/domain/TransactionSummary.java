@@ -1,7 +1,5 @@
 package com.softnet.budgetapi.domain;
 
-import com.softnet.budgetapi.repository.CategoryExpense;
-
 import java.math.BigDecimal;
 import java.util.List;
 

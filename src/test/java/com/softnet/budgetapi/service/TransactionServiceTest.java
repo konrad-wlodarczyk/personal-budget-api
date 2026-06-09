@@ -11,9 +11,8 @@ import com.softnet.budgetapi.mapper.TransactionMapper;
 import com.softnet.budgetapi.model.Account;
 import com.softnet.budgetapi.model.Transaction;
 import com.softnet.budgetapi.model.TransactionType;
-import com.softnet.budgetapi.domain.TransactionSummary;
 import com.softnet.budgetapi.repository.AccountRepository;
-import com.softnet.budgetapi.repository.CategoryExpense;
+import com.softnet.budgetapi.domain.CategoryExpense;
 import com.softnet.budgetapi.repository.TransactionRepository;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -70,12 +69,15 @@ public class TransactionServiceTest {
 
     @Test
     public void testCreateIncomeTransaction() {
+        TransactionCreateRequest request = buildRequest(new BigDecimal("1000"), TransactionType.INCOME);
+
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionMapper.toEntity(any(TransactionCreateRequest.class), any(Account.class)))
+                .thenReturn(new Transaction(request.amount(), request.type(), request.category(), request.description(), account));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(i -> i.getArguments()[0]);
         when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
 
-        TransactionResponse response = transactionService.createTransaction(
-                buildRequest(new BigDecimal("1000"), TransactionType.INCOME));
+        TransactionResponse response = transactionService.createTransaction(request);
 
         assertNotNull(response);
         assertEquals(new BigDecimal("1000"), account.getBalance());
@@ -85,13 +87,15 @@ public class TransactionServiceTest {
     @Test
     public void testCreateExpenseTransaction() {
         account.deposit(new BigDecimal("1000"));
+        TransactionCreateRequest request = buildRequest(new BigDecimal("500"), TransactionType.EXPENSE);
 
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionMapper.toEntity(any(TransactionCreateRequest.class), any(Account.class)))
+                .thenReturn(new Transaction(request.amount(), request.type(), request.category(), request.description(), account));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(i -> i.getArguments()[0]);
         when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
 
-        TransactionResponse response = transactionService.createTransaction(
-                buildRequest(new BigDecimal("500"), TransactionType.EXPENSE));
+        TransactionResponse response = transactionService.createTransaction(request);
 
         assertNotNull(response);
         assertEquals(new BigDecimal("500"), account.getBalance());

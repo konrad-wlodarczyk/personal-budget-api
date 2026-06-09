@@ -1,5 +1,6 @@
 package com.softnet.budgetapi.repository;
 
+import com.softnet.budgetapi.domain.CategoryExpense;
 import com.softnet.budgetapi.model.Transaction;
 import com.softnet.budgetapi.model.TransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,8 +19,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE " +
             "t.type = :type AND " +
-            "(CAST(:from as String) IS NULL OR t.date >= :from) AND " +
-            "(CAST(:to as String) IS NULL OR t.date <= :to) AND " +
+            "(:from IS NULL OR t.date >= :from) AND " +
+            "(:to IS NULL OR t.date <= :to) AND " +
             "(:category IS NULL OR t.category = :category)")
     BigDecimal sumAmountFiltered(
             @Param("type") TransactionType type,
@@ -29,14 +30,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     );
 
     @Query("""
-            SELECT new com.softnet.budgetapi.repository.CategoryExpense(
+            SELECT new com.softnet.budgetapi.domain.CategoryExpense(
                 t.category,
                 SUM(t.amount)
             )
             FROM Transaction t
             WHERE t.type = com.softnet.budgetapi.model.TransactionType.EXPENSE
-            AND (CAST(:from as String) IS NULL OR t.date >= :from)
-            AND (CAST(:to as String) IS NULL OR t.date <= :to)
+            AND (:from IS NULL OR t.date >= :from)
+            AND (:to IS NULL OR t.date <= :to)
             AND (:category IS NULL OR t.category = :category)
             GROUP BY t.category
         """)
@@ -45,4 +46,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
             @Param("to") ZonedDateTime to,
             @Param("category") String category
     );
+
+    List<Transaction> findByAccountId(Long accountId);
 }

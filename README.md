@@ -10,7 +10,7 @@ multiple accounts, with automatic balance updates for every transaction linked t
 ---
 ## Key Features
 
-- **Account Management**: Create, list, and delete accounts (deletion is blocked if transactions are associated with the account for data integrity)
+- **Account Management**: Create, list, delete accounts, as well as exporting transactions linked to account in CSV format (deletion is blocked if transactions are associated with the account for data integrity)
 - **Transaction Handling**: Create, list, and delete transactions. Support for _INCOME_ and _EXPENSE_ types. Balances are recalculated automatically. 
      Includes filtering by date range ('from', 'to') and category.
 - **Reporting**: Provides an endpoint for summary data (total income, total expenses, and spending grouped by category).
@@ -108,7 +108,7 @@ POST /accounts
 ## Future Improvements
 
 - **Budget Limits**: Adding budget limits per category with alerts when the threshold is exceeded
-- **Data Export**: Implementing a CSV/JSON export feature for account transactions
+- **Data Export**: Extending data export to more formats
 - **Dashboard UI**: A frontend application for basic visualization**
 - **Authentication**: Implementing Spring Security to allow budget management for multiple users
 

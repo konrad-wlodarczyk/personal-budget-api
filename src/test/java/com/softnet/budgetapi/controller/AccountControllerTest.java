@@ -7,6 +7,8 @@ import com.softnet.budgetapi.exception.BusinessException;
 import com.softnet.budgetapi.exception.ErrorCode;
 import com.softnet.budgetapi.exception.ResourceNotFoundException;
 import com.softnet.budgetapi.service.AccountService;
+import com.softnet.budgetapi.service.CsvExportService;
+import com.softnet.budgetapi.service.TransactionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -38,6 +40,12 @@ public class AccountControllerTest {
 
     @MockitoBean
     private AccountService accountService;
+
+    @MockitoBean
+    private TransactionService transactionService;
+
+    @MockitoBean
+    private CsvExportService csvExportService;
 
     @Test
     public void testCreateAccount() throws Exception {

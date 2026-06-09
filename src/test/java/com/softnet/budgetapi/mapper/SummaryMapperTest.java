@@ -2,7 +2,7 @@ package com.softnet.budgetapi.mapper;
 
 import com.softnet.budgetapi.domain.TransactionSummary;
 import com.softnet.budgetapi.dto.response.SummaryResponse;
-import com.softnet.budgetapi.repository.CategoryExpense;
+import com.softnet.budgetapi.domain.CategoryExpense;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
