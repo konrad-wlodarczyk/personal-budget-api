@@ -19,8 +19,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE " +
             "t.type = :type AND " +
-            "(:from IS NULL OR t.date >= :from) AND " +
-            "(:to IS NULL OR t.date <= :to) AND " +
+            "(CAST(:from as String) IS NULL OR t.date >= :from) AND " +
+            "(CAST(:to as String) IS NULL OR t.date <= :to) AND " +
             "(:category IS NULL OR t.category = :category)")
     BigDecimal sumAmountFiltered(
             @Param("type") TransactionType type,
@@ -36,8 +36,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
             )
             FROM Transaction t
             WHERE t.type = com.softnet.budgetapi.model.TransactionType.EXPENSE
-            AND (:from IS NULL OR t.date >= :from)
-            AND (:to IS NULL OR t.date <= :to)
+            AND (CAST(:from as String) IS NULL OR t.date >= :from)
+            AND (CAST(:to as String) IS NULL OR t.date <= :to)
             AND (:category IS NULL OR t.category = :category)
             GROUP BY t.category
         """)

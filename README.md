@@ -85,7 +85,7 @@ Swagger documentation: [http://localhost:8080/swagger-ui/index.html](http://loca
 
 ## Testing
 
-The run the test suite and check code coverage (JaCoCo):
+To run the test suite and check code coverage (JaCoCo):
 ```Bash
 ./mvnw clean verify
 ```
@@ -97,7 +97,7 @@ The run the test suite and check code coverage (JaCoCo):
 Example JSON for creating a new account:
 
 ```Bash
-POST /accounts
+POST /api/accounts
 {
   "name": "Main Account"
 }
