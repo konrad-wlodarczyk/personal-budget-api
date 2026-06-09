@@ -179,7 +179,6 @@ public class TransactionServiceTest {
         verify(transactionRepository).sumExpensesByCategoryFiltered(from, to, category);
     }
 
-
     @Test
     public void testDeleteIncomeTransaction() {
         transaction = new Transaction(new BigDecimal("1000"), TransactionType.INCOME, "Test", "Description", account);
@@ -244,8 +243,38 @@ public class TransactionServiceTest {
     }
 
     @Test
+    public void testGetTransactionsByAccountId() {
+        transaction = new Transaction(new BigDecimal("1000"), TransactionType.INCOME, "Test", "Description", account);
+
+        Long accountId = 1L;
+        when(accountRepository.existsById(accountId)).thenReturn(true);
+
+        when(transactionRepository.findByAccountId(accountId)).thenReturn(List.of(transaction));
+        when(transactionMapper.toResponse(transaction)).thenReturn(mock(TransactionResponse.class));
+
+        List<TransactionResponse> response = transactionService.getTransactionsByAccountId(accountId);
+
+        assertNotNull(response);
+        assertEquals(1, response.size());
+        verify(transactionRepository, times(1)).findByAccountId(accountId);
+    }
+
+    @Test
+    public void testGetTransactionsByAccountId_NotFound(){
+        when(accountRepository.existsById(99L)).thenReturn(false);
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+            transactionService.getTransactionsByAccountId(99L);
+        });
+
+        assertEquals(ErrorCode.RESOURCE_NOT_FOUND, exception.getErrorCode());
+        assertEquals("Account with ID: 99 does not exist", exception.getMessage());
+        verify(accountRepository, times(1)).existsById(99L);
+    }
+
+    @Test
     public void testGetAllTransactions_Unfiltered() {
-        transaction = new Transaction(new BigDecimal("1000"), null, "Test", "Description", account);
+        transaction = new Transaction(new BigDecimal("1000"), TransactionType.INCOME, "Test", "Description", account);
 
         when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
         when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
@@ -259,7 +288,7 @@ public class TransactionServiceTest {
 
     @Test
     public void testGetAllTransactions_WithAllFilters() {
-        transaction = new Transaction(new BigDecimal("1000"), null, "Test", "Description", account);
+        transaction = new Transaction(new BigDecimal("1000"), TransactionType.INCOME, "Test", "Description", account);
 
         ZonedDateTime from = ZonedDateTime.now().minusDays(1);
         ZonedDateTime to = ZonedDateTime.now();
@@ -276,7 +305,7 @@ public class TransactionServiceTest {
 
     @Test
     public void testGetAllTransactions_WithOnlyCategoryFilter() {
-        transaction = new Transaction(new BigDecimal("1000"), null, "Test", "Description", account);
+        transaction = new Transaction(new BigDecimal("1000"), TransactionType.INCOME, "Test", "Description", account);
 
         when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
         when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
@@ -290,7 +319,7 @@ public class TransactionServiceTest {
 
     @Test
     public void testGetAllTransactions_WithEmptyCategory() {
-        transaction = new Transaction(new BigDecimal("1000"), null, "Test", "Description", account);
+        transaction = new Transaction(new BigDecimal("1000"), TransactionType.INCOME, "Test", "Description", account);
 
         when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(transaction));
         when(transactionMapper.toResponse(any(Transaction.class))).thenReturn(mock(TransactionResponse.class));
