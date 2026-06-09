@@ -54,7 +54,7 @@ public class AccountController {
     }
 
     @GetMapping(value = "/{id}/transactions/export")
-    public ResponseEntity<?> exportAccountTransactions(@PathVariable Long id){
+    public ResponseEntity<String> exportAccountTransactions(@PathVariable Long id){
         List<TransactionResponse> transactions = transactionService.getTransactionsByAccountId(id);
         String csvData = csvExportService.exportToCsv(transactions);
         String filename = "account_" + id + "_transactions.csv";
