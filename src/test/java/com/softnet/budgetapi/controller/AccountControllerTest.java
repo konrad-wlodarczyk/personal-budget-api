@@ -3,31 +3,33 @@ package com.softnet.budgetapi.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.softnet.budgetapi.dto.request.AccountCreateRequest;
 import com.softnet.budgetapi.dto.response.AccountResponse;
+import com.softnet.budgetapi.dto.response.TransactionResponse;
 import com.softnet.budgetapi.exception.BusinessException;
 import com.softnet.budgetapi.exception.ErrorCode;
 import com.softnet.budgetapi.exception.ResourceNotFoundException;
+import com.softnet.budgetapi.model.TransactionType;
 import com.softnet.budgetapi.service.AccountService;
 import com.softnet.budgetapi.service.CsvExportService;
 import com.softnet.budgetapi.service.TransactionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AccountController.class)
 public class AccountControllerTest {
@@ -155,6 +157,41 @@ public class AccountControllerTest {
                 .andExpect(jsonPath("$[0].name").value("Konto Oszczędnościowe"))
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].balance").value(0));
+    }
+
+    @Test
+    public void testExportAccountTransactions() throws Exception {
+        Long accountId = 1L;
+        TransactionResponse response = new TransactionResponse(
+                1L, BigDecimal.TEN, TransactionType.INCOME,
+                "Test", "Description", ZonedDateTime.now(),
+                accountId, "Konto Oszczędnościowe"
+        );
+
+        String expected = "ID,Amount,Type\n1,10.00,INCOME";
+        List<TransactionResponse> transactions = List.of(response);
+
+        when(transactionService.getTransactionsByAccountId(accountId)).thenReturn(transactions);
+        when(csvExportService.exportToCsv(transactions)).thenReturn(expected);
+
+        mockMvc.perform(get("/api/accounts/1/transactions/export"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"account_1_transactions.csv\""))
+                .andExpect(content().string(expected));
+
+        verify(transactionService, times(1)).getTransactionsByAccountId(accountId);
+        verify(csvExportService, times(1)).exportToCsv(transactions);
+    }
+
+    @Test
+    public void testExportAccountTransactions_NotFound() throws Exception {
+        doThrow(new ResourceNotFoundException("Account with ID: 99 does not exist"))
+                .when(transactionService).getTransactionsByAccountId(99L);
+
+        mockMvc.perform(get("/api/accounts/99/transactions/export"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value("Account with ID: 99 does not exist"));
     }
 
     @Test
