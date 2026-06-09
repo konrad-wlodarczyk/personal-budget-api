@@ -109,7 +109,7 @@ POST /api/accounts
 
 - **Budget Limits**: Adding budget limits per category with alerts when the threshold is exceeded
 - **Data Export**: Extending data export to more formats
-- **Dashboard UI**: A frontend application for basic visualization**
+- **Dashboard UI**: A frontend application for basic visualization
 - **Authentication**: Implementing Spring Security to allow budget management for multiple users
 
 ---
